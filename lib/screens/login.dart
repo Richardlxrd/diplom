@@ -25,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text,
       );
       if (user != null) {
-        Navigator.pushReplacementNamed(context, '/news_feed', arguments: user);
+        Navigator.pushReplacementNamed(context, 'news_feed', arguments: user);
       }
       if (user == null) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1,4 +1,7 @@
+import 'package:diplom/screens/event.dart';
+import 'package:diplom/screens/login.dart';
 import 'package:diplom/screens/news_detail_screen.dart';
+import 'package:diplom/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -144,6 +147,7 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
           _buildNotificationBadge(),
         ],
       ),
+      drawer: _buildDrawer(context, widget),
       body: RefreshIndicator(
         onRefresh: _refreshNews,
         child: FutureBuilder<List<Map<String, dynamic>>>(
@@ -449,4 +453,99 @@ class _NewsActionsState extends State<_NewsActions> {
       ],
     );
   }
+}
+
+Widget _buildDrawer(BuildContext context, dynamic widget) {
+  String? getAvatarUrl() {
+    final url = widget.user['avatar_url'];
+    if (url == null || url.isEmpty) return null;
+    if (!url.startsWith('http')) return null;
+    return url;
+  }
+
+  return Drawer(
+    child: ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        DrawerHeader(
+          decoration: BoxDecoration(color: Colors.blue),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 30,
+                backgroundImage: getAvatarUrl() != null
+                    ? NetworkImage(getAvatarUrl()!)
+                    : AssetImage('assets/images/default_avatar.png')
+                          as ImageProvider,
+                child: getAvatarUrl() == null
+                    ? Icon(Icons.person, size: 30, color: Colors.white)
+                    : null,
+              ),
+              SizedBox(height: 10),
+              Text(
+                widget.user['name'] ?? 'Пользователь',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+              Text(
+                widget.user['email'] ?? '',
+                style: TextStyle(color: Colors.white70),
+              ),
+            ],
+          ),
+        ),
+        ListTile(
+          leading: Icon(Icons.newspaper),
+          title: Text('Новости'),
+          onTap: () {
+            Navigator.pop(context); // Закрываем меню
+            // Остаемся на текущей странице
+          },
+        ),
+        ListTile(
+          leading: Icon(Icons.event),
+          title: Text('Мероприятия'),
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EventsScreen(user: widget.user),
+              ),
+            );
+          },
+        ),
+        ListTile(
+          leading: Icon(Icons.person),
+          title: Text('Профиль'),
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ProfileScreen(user: widget.user),
+              ),
+            );
+          },
+        ),
+        Divider(),
+        ListTile(
+          leading: Icon(Icons.exit_to_app),
+          title: Text('Выход'),
+          onTap: () {
+            Navigator.pop(context);
+            _logout(context);
+          },
+        ),
+      ],
+    ),
+  );
+}
+
+void _logout(BuildContext context) {
+  // Ваш код выхода
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (context) => LoginScreen()),
+  );
 }

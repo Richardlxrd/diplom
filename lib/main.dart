@@ -16,6 +16,14 @@ class CorporatePortalApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      routes: {
+        'news_feed': (context) => NewsFeedScreen(
+          user:
+              ModalRoute.of(context)!.settings.arguments
+                  as Map<String, dynamic>,
+        ),
+      },
       title: 'Корпоративный портал',
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -25,17 +33,7 @@ class CorporatePortalApp extends StatelessWidget {
           titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
       ),
-      home: FutureBuilder(
-        future: DatabaseHelper().authenticate('admin@company.com', 'admin123'),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.done) {
-            return snapshot.hasData
-                ? NewsFeedScreen(user: snapshot.data!)
-                : const LoginScreen();
-          }
-          return const SplashScreen();
-        },
-      ),
+      home: LoginScreen(),
     );
   }
 }
