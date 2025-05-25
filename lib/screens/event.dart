@@ -265,20 +265,23 @@ class _AddEventFormState extends State<AddEventForm> {
   }
 
   Future<void> _selectDate() async {
-    final date = await showDatePicker(
-      context: context,
+    // Сохраняем контекст с явным указанием типа
+    final BuildContext currentContext = context;
+
+    final DateTime? date = await showDatePicker(
+      context: currentContext, // Используем сохраненный контекст
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
 
     if (date != null) {
-      final time = await showTimePicker(
-        context: context,
+      final TimeOfDay? time = await showTimePicker(
+        context: currentContext, // Используем тот же контекст
         initialTime: TimeOfDay.now(),
       );
 
-      if (time != null) {
+      if (time != null && mounted) {
         setState(() {
           _selectedDate = DateTime(
             date.year,
@@ -296,20 +299,21 @@ class _AddEventFormState extends State<AddEventForm> {
   void _submitForm() async {
     if (_formKey.currentState!.validate() && _selectedDate != null) {
       try {
-        // Получаем текущего пользователя из widget.user
-        final currentUser =
-            widget.user; // Убедитесь, что user передается в конструктор формы
+        final currentUser = widget.user;
 
         await DatabaseHelper().createEvent(
           title: _titleController.text,
           location: _locationController.text,
           eventDate: _selectedDate!,
-          organizerName: currentUser['name'], // Имя организатора
+          organizerName:
+              currentUser['name']?.toString() ?? 'Неизвестный организатор',
           description: _descriptionController.text,
         );
 
-        Navigator.pop(context);
+        if (!mounted) return;
+        Navigator.of(context).pop();
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Ошибка: ${e.toString()}')));

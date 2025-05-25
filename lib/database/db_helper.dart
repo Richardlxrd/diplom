@@ -64,17 +64,16 @@ class DatabaseHelper {
     required String title,
     required String location,
     required DateTime eventDate,
-    required String organizerName, // Новый обязательный параметр
+    required String organizerName, // Только имя организатора
     String? description,
   }) async {
     final db = await database;
-
     return await db.insert('events', {
       'title': title,
-      'description': description,
       'location': location,
       'event_date': eventDate.toIso8601String(),
-      'organizer_name': organizerName, // Сохраняем имя
+      'organizer_name': organizerName, // Сохраняем только имя
+      'description': description,
       'created_at': DateTime.now().toIso8601String(),
     });
   }
