@@ -64,7 +64,7 @@ class DatabaseHelper {
     required String title,
     required String location,
     required DateTime eventDate,
-    required int organizerId,
+    required String organizerName, // Новый обязательный параметр
     String? description,
   }) async {
     final db = await database;
@@ -74,7 +74,7 @@ class DatabaseHelper {
       'description': description,
       'location': location,
       'event_date': eventDate.toIso8601String(),
-      'organizer_id': organizerId, // Важно: organizer_id, а не organizer
+      'organizer_name': organizerName, // Сохраняем имя
       'created_at': DateTime.now().toIso8601String(),
     });
   }
@@ -275,5 +275,16 @@ class DatabaseHelper {
       whereArgs: [userId],
       orderBy: 'created_at DESC',
     );
+  }
+
+  Future<Map<String, dynamic>> getUserById(int id) async {
+    final db = await database;
+    final result = await db.query(
+      'users',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    return result.isNotEmpty ? result.first : {};
   }
 }

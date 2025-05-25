@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:path/path.dart';
 import '../database/db_helper.dart'; // Импорт вашего DatabaseHelper
 
 class EventsScreen extends StatefulWidget {
-  const EventsScreen({Key? key}) : super(key: key);
+  final Map<String, dynamic> user;
+
+  const EventsScreen({Key? key, required this.user}) : super(key: key);
 
   @override
   State<EventsScreen> createState() => _EventsScreenState();
 }
 
 class _EventsScreenState extends State<EventsScreen> {
+  Map<int, String> organizerNames = {};
   late Future<List<Map<String, dynamic>>> _eventsFuture;
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
@@ -66,7 +70,9 @@ class _EventsScreenState extends State<EventsScreen> {
     BuildContext parentContext,
     Map<String, dynamic> event,
   ) {
-    final date = DateTime.parse(event['date']);
+    final date = event['event_date'] != null
+        ? DateTime.tryParse(event['event_date'].toString()) ?? DateTime.now()
+        : DateTime.now();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -88,7 +94,10 @@ class _EventsScreenState extends State<EventsScreen> {
                 DateFormat('dd.MM.yyyy HH:mm').format(date),
               ),
               _buildEventDetailRow(Icons.location_on, event['location']),
-              _buildEventDetailRow(Icons.person, event['organizer']),
+              _buildEventDetailRow(
+                Icons.person,
+                event['organizer_name'] ?? 'Неизвестно',
+              ),
             ],
           ),
         ),
@@ -131,7 +140,8 @@ class _EventsScreenState extends State<EventsScreen> {
             bottom: MediaQuery.of(modalContext).viewInsets.bottom,
           ),
           child: AddEventForm(
-            onEventAdded: _loadEvents, // Передаем функцию обновления списка
+            onEventAdded: _loadEvents,
+            user: widget.user, // Передаем функцию обновления списка
           ),
         );
       },
@@ -190,9 +200,11 @@ class EventDetailsScreen extends StatelessWidget {
 }
 
 class AddEventForm extends StatefulWidget {
+  final Map<String, dynamic> user;
   final Function() onEventAdded;
 
-  const AddEventForm({Key? key, required this.onEventAdded}) : super(key: key);
+  const AddEventForm({Key? key, required this.onEventAdded, required this.user})
+    : super(key: key);
 
   @override
   State<AddEventForm> createState() => _AddEventFormState();
@@ -280,17 +292,19 @@ class _AddEventFormState extends State<AddEventForm> {
     }
   }
 
+  // В форме добавления мероприятия:
   void _submitForm() async {
     if (_formKey.currentState!.validate() && _selectedDate != null) {
       try {
-        // Получаем ID текущего пользователя (пример)
-        final currentUserId = AuthService().currentUser?.id ?? 0;
+        // Получаем текущего пользователя из widget.user
+        final currentUser =
+            widget.user; // Убедитесь, что user передается в конструктор формы
 
         await DatabaseHelper().createEvent(
           title: _titleController.text,
           location: _locationController.text,
           eventDate: _selectedDate!,
-          organizerId: currentUserId, // Передаем ID организатора
+          organizerName: currentUser['name'], // Имя организатора
           description: _descriptionController.text,
         );
 

@@ -493,9 +493,12 @@ Widget _buildDrawer(BuildContext context, dynamic widget) {
           leading: Icon(Icons.event),
           title: Text('Мероприятия'),
           onTap: () {
+            Navigator.pop(context);
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => EventsScreen()),
+              MaterialPageRoute(
+                builder: (context) => EventsScreen(user: widget.user),
+              ),
             );
           },
         ),
