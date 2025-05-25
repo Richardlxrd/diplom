@@ -48,6 +48,16 @@ class DatabaseHelper {
     );
   }
 
+  Future<List<Map<String, dynamic>>> getEvents(dynamic instance) async {
+    final db = await instance.database;
+    return await db.query('events');
+  }
+
+  Future<void> createEvent(Map<String, dynamic> event, dynamic instance) async {
+    final db = await instance.database;
+    await db.insert('events', event);
+  }
+
   bool _isDesktopPlatform() {
     return !kIsWeb &&
         (defaultTargetPlatform == TargetPlatform.windows ||
@@ -69,6 +79,16 @@ class DatabaseHelper {
           last_login TEXT
         )
       ''');
+      await db.execute('''
+  CREATE TABLE events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    description TEXT,
+    location TEXT,
+    date TEXT NOT NULL,
+    organizer_id INTEGER NOT NULL
+  )
+''');
 
       await txn.execute('''
        CREATE TABLE $tableNews (
