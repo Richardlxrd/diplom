@@ -50,14 +50,7 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> getEventsWithOrganizer() async {
     final db = await database;
-    return await db.rawQuery('''
-    SELECT 
-      e.*,
-      u.name as organizer_name
-    FROM events e
-    JOIN users u ON e.organizer_id = u.id
-    ORDER BY e.event_date ASC
-  ''');
+    return await db.query('events', orderBy: 'event_date ASC');
   }
 
   Future<int> createEvent({

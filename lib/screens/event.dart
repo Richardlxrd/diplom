@@ -93,7 +93,7 @@ class _EventsScreenState extends State<EventsScreen> {
                 DateFormat('dd.MM.yyyy HH:mm').format(date),
               ),
               _buildEventDetailRow(Icons.location_on, event['location']),
-              _buildEventDetailRow(Icons.person, event['organizer_id']),
+              _buildEventDetailRow(Icons.person, event['organizer_name']),
             ],
           ),
         ),
