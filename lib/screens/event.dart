@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:path/path.dart';
 import '../database/db_helper.dart'; // Импорт вашего DatabaseHelper
 
 class EventsScreen extends StatefulWidget {
@@ -94,10 +93,7 @@ class _EventsScreenState extends State<EventsScreen> {
                 DateFormat('dd.MM.yyyy HH:mm').format(date),
               ),
               _buildEventDetailRow(Icons.location_on, event['location']),
-              _buildEventDetailRow(
-                Icons.person,
-                event['organizer_name'] ?? 'Неизвестно',
-              ),
+              _buildEventDetailRow(Icons.person, event['organizer_id']),
             ],
           ),
         ),
@@ -265,23 +261,20 @@ class _AddEventFormState extends State<AddEventForm> {
   }
 
   Future<void> _selectDate() async {
-    // Сохраняем контекст с явным указанием типа
-    final BuildContext currentContext = context;
-
-    final DateTime? date = await showDatePicker(
-      context: currentContext, // Используем сохраненный контекст
+    final date = await showDatePicker(
+      context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
 
     if (date != null) {
-      final TimeOfDay? time = await showTimePicker(
-        context: currentContext, // Используем тот же контекст
+      final time = await showTimePicker(
+        context: context,
         initialTime: TimeOfDay.now(),
       );
 
-      if (time != null && mounted) {
+      if (time != null) {
         setState(() {
           _selectedDate = DateTime(
             date.year,
@@ -299,21 +292,16 @@ class _AddEventFormState extends State<AddEventForm> {
   void _submitForm() async {
     if (_formKey.currentState!.validate() && _selectedDate != null) {
       try {
-        final currentUser = widget.user;
-
         await DatabaseHelper().createEvent(
           title: _titleController.text,
           location: _locationController.text,
           eventDate: _selectedDate!,
-          organizerName:
-              currentUser['name']?.toString() ?? 'Неизвестный организатор',
+          organizerName: widget.user['name'], // Передаём корректный ID
           description: _descriptionController.text,
         );
 
-        if (!mounted) return;
-        Navigator.of(context).pop();
+        Navigator.pop(context);
       } catch (e) {
-        if (!mounted) return;
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Ошибка: ${e.toString()}')));
