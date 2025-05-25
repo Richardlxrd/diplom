@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:diplom/database/db_helper.dart';
-import 'package:diplom/models/user.dart';
-import 'package:diplom/screens/home.dart';
+import '../database/db_helper.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,26 +10,39 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final dbHelper = DatabaseHelper.instance;
-    final user = await dbHelper.getUserByEmail(_emailController.text);
+    setState(() => _isLoading = true);
 
-    if (user == null || user['password'] != _passwordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Неверный email или пароль')),
+    try {
+      final user = await DatabaseHelper().authenticate(
+        _emailController.text,
+        _passwordController.text,
       );
-      return;
-    }
+      if (user != null) {
+        Navigator.pushReplacementNamed(context, '/news_feed', arguments: user);
+      }
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Неверный email или пароль')),
+        );
+        return;
+      }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => HomeScreen(user: User.fromMap(user))),
-    );
+      // Переход на главный экран после успешной аутентификации
+      Navigator.pushReplacementNamed(context, '/home', arguments: user);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ошибка входа: ${e.toString()}')));
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -64,11 +75,23 @@ class _LoginScreenState extends State<LoginScreen> {
                 },
               ),
               const SizedBox(height: 20),
-              ElevatedButton(onPressed: _login, child: const Text('Войти')),
+              _isLoading
+                  ? const CircularProgressIndicator()
+                  : ElevatedButton(
+                      onPressed: _login,
+                      child: const Text('Войти'),
+                    ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 }

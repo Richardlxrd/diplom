@@ -1,43 +1,50 @@
 import 'package:diplom/database/db_helper.dart';
 import 'package:diplom/screens/login.dart';
-import 'package:flutter/foundation.dart';
+import 'package:diplom/screens/news_feed.dart';
 import 'package:flutter/material.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:diplom/database/db_helper.dart';
-import 'package:diplom/screens/login.dart';
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await DatabaseHelper().database; // Инициализация БД
 
-  // Инициализация для десктопных платформ
-  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.linux) {
-    sqfliteFfiInit();
-    databaseFactory = databaseFactoryFfi;
-  }
+  runApp(const CorporatePortalApp());
+}
 
-  // Проверка работы базы данных
-  try {
-    await DatabaseHelper.instance.database;
-    runApp(const MyApp());
-  } catch (e) {
-    runApp(
-      MaterialApp(
-        home: Scaffold(body: Center(child: Text('Database error: $e'))),
+class CorporatePortalApp extends StatelessWidget {
+  const CorporatePortalApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Корпоративный портал',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        appBarTheme: const AppBarTheme(
+          elevation: 0,
+          centerTitle: true,
+          titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+      ),
+      home: FutureBuilder(
+        future: DatabaseHelper().authenticate('admin@company.com', 'admin123'),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            return snapshot.hasData
+                ? NewsFeedScreen(user: snapshot.data!)
+                : const LoginScreen();
+          }
+          return const SplashScreen();
+        },
       ),
     );
   }
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class SplashScreen extends StatelessWidget {
+  const SplashScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Corporate Portal',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: const LoginScreen(),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
