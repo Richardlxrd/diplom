@@ -456,13 +456,6 @@ class _NewsActionsState extends State<_NewsActions> {
 }
 
 Widget _buildDrawer(BuildContext context, dynamic widget) {
-  String? getAvatarUrl() {
-    final url = widget.user['avatar_url'];
-    if (url == null || url.isEmpty) return null;
-    if (!url.startsWith('http')) return null;
-    return url;
-  }
-
   return Drawer(
     child: ListView(
       padding: EdgeInsets.zero,
@@ -474,13 +467,7 @@ Widget _buildDrawer(BuildContext context, dynamic widget) {
             children: [
               CircleAvatar(
                 radius: 30,
-                backgroundImage: getAvatarUrl() != null
-                    ? NetworkImage(getAvatarUrl()!)
-                    : AssetImage('assets/images/default_avatar.png')
-                          as ImageProvider,
-                child: getAvatarUrl() == null
-                    ? Icon(Icons.person, size: 30, color: Colors.white)
-                    : null,
+                backgroundImage: NetworkImage(widget.user['avatar_url'] ?? ''),
               ),
               SizedBox(height: 10),
               Text(
@@ -506,12 +493,9 @@ Widget _buildDrawer(BuildContext context, dynamic widget) {
           leading: Icon(Icons.event),
           title: Text('Мероприятия'),
           onTap: () {
-            Navigator.pop(context);
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => EventsScreen(user: widget.user),
-              ),
+              MaterialPageRoute(builder: (_) => EventsScreen()),
             );
           },
         ),

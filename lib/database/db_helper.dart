@@ -5,7 +5,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class DatabaseHelper {
   static const String _databaseName = 'corporate_portal.db';
-  static const int _databaseVersion = 3;
+  static const int _databaseVersion = 5;
 
   // Таблицы и колонки
   static const String tableUsers = 'users';
@@ -48,14 +48,50 @@ class DatabaseHelper {
     );
   }
 
-  Future<List<Map<String, dynamic>>> getEvents(dynamic instance) async {
-    final db = await instance.database;
-    return await db.query('events');
+  Future<List<Map<String, dynamic>>> getEventsWithOrganizer() async {
+    final db = await database;
+    return await db.rawQuery('''
+    SELECT 
+      e.*,
+      u.name as organizer_name
+    FROM events e
+    JOIN users u ON e.organizer_id = u.id
+    ORDER BY e.event_date ASC
+  ''');
   }
 
-  Future<void> createEvent(Map<String, dynamic> event, dynamic instance) async {
-    final db = await instance.database;
-    await db.insert('events', event);
+  Future<int> createEvent({
+    required String title,
+    required String location,
+    required DateTime eventDate,
+    required int organizerId,
+    String? description,
+  }) async {
+    final db = await database;
+
+    return await db.insert('events', {
+      'title': title,
+      'description': description,
+      'location': location,
+      'event_date': eventDate.toIso8601String(),
+      'organizer_id': organizerId, // Важно: organizer_id, а не organizer
+      'created_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  Future<int> updateEvent(Map<String, dynamic> event) async {
+    final db = await database;
+    return await db.update(
+      'events',
+      event,
+      where: 'id = ?',
+      whereArgs: [event['id']],
+    );
+  }
+
+  Future<int> deleteEvent(int id) async {
+    final db = await database;
+    return await db.delete('events', where: 'id = ?', whereArgs: [id]);
   }
 
   bool _isDesktopPlatform() {
@@ -80,16 +116,17 @@ class DatabaseHelper {
         )
       ''');
       await db.execute('''
-  CREATE TABLE events (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    description TEXT,
-    location TEXT,
-    date TEXT NOT NULL,
-    organizer_id INTEGER NOT NULL
-  )
-''');
-
+    CREATE TABLE events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      location TEXT NOT NULL,
+      event_date TEXT NOT NULL,
+      organizer_id INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      participants TEXT DEFAULT '[]'
+    )
+  ''');
       await txn.execute('''
        CREATE TABLE $tableNews (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -116,18 +153,18 @@ class DatabaseHelper {
         )
       ''');
 
-      await txn.execute('''
-        CREATE TABLE $tableEvents (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          title TEXT NOT NULL,
-          description TEXT,
-          start_time TEXT NOT NULL,
-          end_time TEXT NOT NULL,
-          location TEXT,
-          organizer_id INTEGER,
-          FOREIGN KEY (organizer_id) REFERENCES $tableUsers(id) ON DELETE SET NULL
-        )
-      ''');
+      await db.execute('''
+    CREATE TABLE IF NOT EXISTS events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      location TEXT NOT NULL,
+      event_date TEXT NOT NULL,
+      organizer_id INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (organizer_id) REFERENCES users(id)
+    )
+  ''');
 
       // Добавляем тестового администратора
       await txn.insert(tableUsers, {
@@ -238,17 +275,5 @@ class DatabaseHelper {
       whereArgs: [userId],
       orderBy: 'created_at DESC',
     );
-  }
-
-  Future<List<Map<String, dynamic>>> getUpcomingEvents() async {
-    final db = await database;
-    return await db.rawQuery('''
-      SELECT e.*, u.name as organizer_name
-      FROM $tableEvents e
-      LEFT JOIN $tableUsers u ON e.organizer_id = u.id
-      WHERE e.start_time > datetime('now')
-      ORDER BY e.start_time ASC
-      LIMIT 10
-    ''');
   }
 }
