@@ -59,26 +59,65 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
   }
 
   void _showSearchDialog(BuildContext context) {
+    final searchController = TextEditingController();
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Поиск новостей'),
-        content: TextField(
-          decoration: InputDecoration(hintText: 'Введите ключевые слова'),
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Поиск новостей',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              SizedBox(height: 16),
+              TextField(
+                controller: searchController,
+                decoration: InputDecoration(
+                  hintText: 'Введите ключевые слова...',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+                autofocus: true,
+              ),
+              SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('ОТМЕНА'),
+                  ),
+                  SizedBox(width: 8),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 24),
+                    ),
+                    onPressed: () {
+                      // Реализация поиска
+                      Navigator.pop(context);
+                    },
+                    child: Text('НАЙТИ'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Отмена'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // Реализация поиска
-              Navigator.pop(context);
-            },
-            child: Text('Искать'),
-          ),
-        ],
       ),
     );
   }
@@ -257,28 +296,34 @@ class _NewsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final date = DateTime.parse(news['created_at']);
     final formattedDate = DateFormat('dd.MM.yyyy HH:mm').format(date);
+    final theme = Theme.of(context);
 
     return Card(
       margin: EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: () => _showNewsDetail(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (news['image_url'] != null)
-              ClipRRect(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                child: CachedNetworkImage(
-                  imageUrl: news['image_url'],
+              CachedNetworkImage(
+                imageUrl: news['image_url'],
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
                   height: 200,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) =>
-                      Container(height: 200, color: Colors.grey[200]),
-                  errorWidget: (context, url, error) => Icon(Icons.error),
+                  color: Colors.grey[200],
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  height: 200,
+                  color: Colors.grey[200],
+                  child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
                 ),
               ),
             Padding(
@@ -288,21 +333,46 @@ class _NewsCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Chip(
-                        label: Text(news['category'] ?? 'Общее'),
-                        backgroundColor: Colors.amber[100],
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getCategoryColor(news['category']),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          news['category'] ?? 'Общее',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       Spacer(),
-                      Text(formattedDate, style: TextStyle(color: Colors.grey)),
+                      Text(
+                        formattedDate,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
                     ],
                   ),
-                  SizedBox(height: 8),
+                  SizedBox(height: 12),
                   Text(
                     news['title'],
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  SizedBox(height: 8),
-                  Text(news['content']),
+                  SizedBox(height: 12),
+                  Text(
+                    news['content'],
+                    style: theme.textTheme.bodyMedium,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   SizedBox(height: 16),
                   _NewsActions(news: news),
                 ],
@@ -312,6 +382,19 @@ class _NewsCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Color _getCategoryColor(String? category) {
+    switch (category) {
+      case 'Новости':
+        return Colors.blue.shade600;
+      case 'Объявления':
+        return Colors.green.shade600;
+      case 'Мероприятия':
+        return Colors.purple.shade600;
+      default:
+        return Colors.orange.shade600;
+    }
   }
 
   void _showNewsDetail(BuildContext context) {
