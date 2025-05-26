@@ -152,7 +152,7 @@ class EventDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final date = DateTime.parse(event['date']);
+    final date = DateTime.parse(event['event_date']);
 
     return Scaffold(
       appBar: AppBar(title: Text(event['title'])),
@@ -167,7 +167,7 @@ class EventDetailsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _buildDetailRow('Место проведения', event['location']),
-            _buildDetailRow('Организатор', event['organizer']),
+            _buildDetailRow('Организатор', event['organizer_name']),
             const SizedBox(height: 24),
             Text('Описание', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),

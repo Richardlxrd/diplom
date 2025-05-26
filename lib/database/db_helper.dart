@@ -54,10 +54,10 @@ class DatabaseHelper {
   }
 
   Future<int> createEvent({
-    required String title,
-    required String location,
+    required String? title,
+    required String? location,
     required DateTime eventDate,
-    required String organizerName, // Только имя организатора
+    required String? organizerName, // Только имя организатора
     String? description,
   }) async {
     final db = await database;
@@ -67,7 +67,7 @@ class DatabaseHelper {
       'event_date': eventDate.toIso8601String(),
       'organizer_name': organizerName, // Сохраняем только имя
       'description': description,
-      'created_at': DateTime.now().toIso8601String(),
+      'created_at': eventDate.toIso8601String(),
     });
   }
 
