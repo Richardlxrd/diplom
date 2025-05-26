@@ -5,7 +5,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class DatabaseHelper {
   static const String _databaseName = 'corporate_portal.db';
-  static const int _databaseVersion = 5;
+  static const int _databaseVersion = 6;
 
   // Таблицы и колонки
   static const String tableUsers = 'users';
@@ -157,6 +157,28 @@ class DatabaseHelper {
       FOREIGN KEY (organizer_id) REFERENCES users(id)
     )
   ''');
+      await db.execute('''
+      CREATE TABLE communities (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT,
+        icon_url TEXT,
+        is_private BOOLEAN DEFAULT 0,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
+      await db.execute('''
+      CREATE TABLE user_communities (
+        user_id INTEGER NOT NULL,
+        community_id INTEGER NOT NULL,
+        is_admin BOOLEAN DEFAULT 0,
+        joined_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE,
+        PRIMARY KEY (user_id, community_id)
+      )
+    ''');
 
       // Добавляем тестового администратора
       await txn.insert(tableUsers, {
@@ -171,20 +193,31 @@ class DatabaseHelper {
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      await db.execute('ALTER TABLE $tableUsers ADD COLUMN department TEXT');
-    }
-    if (oldVersion < 3) {
       await db.execute('''
-        CREATE TABLE $tableNotifications (
+        CREATE TABLE communities (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id INTEGER NOT NULL,
-          title TEXT NOT NULL,
-          message TEXT NOT NULL,
-          is_read INTEGER DEFAULT 0,
-          created_at TEXT NOT NULL,
-          FOREIGN KEY (user_id) REFERENCES $tableUsers(id) ON DELETE CASCADE
+          name TEXT NOT NULL,
+          description TEXT,
+          icon_url TEXT,
+          is_private BOOLEAN DEFAULT 0,
+          created_at TEXT NOT NULL
         )
       ''');
+
+      await db.execute('''
+        CREATE TABLE user_communities (
+          user_id INTEGER NOT NULL,
+          community_id INTEGER NOT NULL,
+          is_admin BOOLEAN DEFAULT 0,
+          joined_at TEXT NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+          FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE,
+          PRIMARY KEY (user_id, community_id)
+        )
+      ''');
+
+      // Добавляем колонку community_id к существующей таблице news
+      await db.execute('ALTER TABLE news ADD COLUMN community_id INTEGER');
     }
   }
 
@@ -257,6 +290,15 @@ class DatabaseHelper {
     ''',
       [newsId],
     );
+  }
+
+  Future<List<Map<String, dynamic>>> searchNews(String query) async {
+    final db = await database;
+    return await db.rawQuery('''
+      'news',
+      where: 'title LIKE ?',
+      whereArgs: ['%$query%'],
+    ''');
   }
 
   Future<List<Map<String, dynamic>>> getUserNotifications(int userId) async {
