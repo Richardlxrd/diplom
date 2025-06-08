@@ -35,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       // Переход на главный экран после успешной аутентификации
-      Navigator.pushReplacementNamed(context, '/home', arguments: user);
+      Navigator.pushReplacementNamed(context, 'news_feed', arguments: user);
     } catch (e) {
       ScaffoldMessenger.of(
         context,
