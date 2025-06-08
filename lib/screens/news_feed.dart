@@ -1,4 +1,7 @@
+import 'package:diplom/screens/event.dart';
+import 'package:diplom/screens/login.dart';
 import 'package:diplom/screens/news_detail_screen.dart';
+import 'package:diplom/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -59,26 +62,65 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
   }
 
   void _showSearchDialog(BuildContext context) {
+    final searchController = TextEditingController();
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Поиск новостей'),
-        content: TextField(
-          decoration: InputDecoration(hintText: 'Введите ключевые слова'),
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Поиск новостей',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              SizedBox(height: 16),
+              TextField(
+                controller: searchController,
+                decoration: InputDecoration(
+                  hintText: 'Введите ключевые слова...',
+                  prefixIcon: Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                ),
+                autofocus: true,
+              ),
+              SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('ОТМЕНА'),
+                  ),
+                  SizedBox(width: 8),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 24),
+                    ),
+                    onPressed: () {
+                      // Реализация поиска
+                      Navigator.pop(context);
+                    },
+                    child: Text('НАЙТИ'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Отмена'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // Реализация поиска
-              Navigator.pop(context);
-            },
-            child: Text('Искать'),
-          ),
-        ],
       ),
     );
   }
@@ -105,6 +147,7 @@ class _NewsFeedScreenState extends State<NewsFeedScreen> {
           _buildNotificationBadge(),
         ],
       ),
+      drawer: _buildDrawer(context, widget),
       body: RefreshIndicator(
         onRefresh: _refreshNews,
         child: FutureBuilder<List<Map<String, dynamic>>>(
@@ -257,28 +300,34 @@ class _NewsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final date = DateTime.parse(news['created_at']);
     final formattedDate = DateFormat('dd.MM.yyyy HH:mm').format(date);
+    final theme = Theme.of(context);
 
     return Card(
       margin: EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: () => _showNewsDetail(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (news['image_url'] != null)
-              ClipRRect(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-                child: CachedNetworkImage(
-                  imageUrl: news['image_url'],
+              CachedNetworkImage(
+                imageUrl: news['image_url'],
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
                   height: 200,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) =>
-                      Container(height: 200, color: Colors.grey[200]),
-                  errorWidget: (context, url, error) => Icon(Icons.error),
+                  color: Colors.grey[200],
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  height: 200,
+                  color: Colors.grey[200],
+                  child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
                 ),
               ),
             Padding(
@@ -288,21 +337,46 @@ class _NewsCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Chip(
-                        label: Text(news['category'] ?? 'Общее'),
-                        backgroundColor: Colors.amber[100],
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getCategoryColor(news['category']),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          news['category'] ?? 'Общее',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       Spacer(),
-                      Text(formattedDate, style: TextStyle(color: Colors.grey)),
+                      Text(
+                        formattedDate,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
                     ],
                   ),
-                  SizedBox(height: 8),
+                  SizedBox(height: 12),
                   Text(
                     news['title'],
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                  SizedBox(height: 8),
-                  Text(news['content']),
+                  SizedBox(height: 12),
+                  Text(
+                    news['content'],
+                    style: theme.textTheme.bodyMedium,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   SizedBox(height: 16),
                   _NewsActions(news: news),
                 ],
@@ -312,6 +386,19 @@ class _NewsCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Color _getCategoryColor(String? category) {
+    switch (category) {
+      case 'Новости':
+        return Colors.blue.shade600;
+      case 'Объявления':
+        return Colors.green.shade600;
+      case 'Мероприятия':
+        return Colors.purple.shade600;
+      default:
+        return Colors.orange.shade600;
+    }
   }
 
   void _showNewsDetail(BuildContext context) {
@@ -366,4 +453,86 @@ class _NewsActionsState extends State<_NewsActions> {
       ],
     );
   }
+}
+
+Widget _buildDrawer(BuildContext context, dynamic widget) {
+  return Drawer(
+    child: ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        DrawerHeader(
+          decoration: BoxDecoration(color: Colors.blue),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 30,
+                backgroundImage: NetworkImage(widget.user['avatar_url'] ?? ''),
+              ),
+              SizedBox(height: 10),
+              Text(
+                widget.user['name'] ?? 'Пользователь',
+                style: TextStyle(color: Colors.white, fontSize: 18),
+              ),
+              Text(
+                widget.user['email'] ?? '',
+                style: TextStyle(color: Colors.white70),
+              ),
+            ],
+          ),
+        ),
+        ListTile(
+          leading: Icon(Icons.newspaper),
+          title: Text('Новости'),
+          onTap: () {
+            Navigator.pop(context); // Закрываем меню
+            // Остаемся на текущей странице
+          },
+        ),
+        ListTile(
+          leading: Icon(Icons.event),
+          title: Text('Мероприятия'),
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EventsScreen(user: widget.user),
+              ),
+            );
+          },
+        ),
+        ListTile(
+          leading: Icon(Icons.person),
+          title: Text('Профиль'),
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ProfileScreen(user: widget.user),
+              ),
+            );
+          },
+        ),
+        Divider(),
+        ListTile(
+          leading: Icon(Icons.exit_to_app),
+          title: Text('Выход'),
+          onTap: () {
+            Navigator.pop(context);
+            _logout(context);
+          },
+        ),
+      ],
+    ),
+  );
+}
+
+void _logout(BuildContext context) {
+  // Ваш код выхода
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (context) => LoginScreen()),
+  );
 }

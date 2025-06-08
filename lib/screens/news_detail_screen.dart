@@ -25,15 +25,6 @@ class _NewsDetailScreenState extends State<NewsDetailScreen> {
   Future<void> _addComment() async {
     if (_commentController.text.isEmpty) return;
 
-    // Здесь должен быть реальный ID пользователя
-    const userId = 1;
-
-    // await DatabaseHelper().addComment(
-    //   newsId: widget.news['id'],
-    //   userId: userId,
-    //   text: _commentController.text,
-    // );
-
     setState(() {
       _commentsFuture = DatabaseHelper().getNewsComments(widget.news['id']);
       _commentController.clear();

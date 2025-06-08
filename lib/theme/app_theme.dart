@@ -4,10 +4,9 @@ class AppTheme {
   static const Color _goldenApplePrimary = Color(0xFFF8D568); // Золотистый
   static const Color _goldenAppleSecondary = Color(0xFFE5B844); // Темно-золотой
   static const Color _goldenAppleDark = Color(0xFF2C2723); // Темно-коричневый
-  static const Color _goldenAppleLight = Color(0xFFF9F5E9); // Кремовый
-  static const Color _goldenAppleAccent = Color(
-    0xFFD4AF37,
-  ); // Акцентный золотой
+  static const Color _goldenAppleLight = Color(
+    0xFFF9F5E9,
+  ); // Кремовый// Акцентный золотой
 
   static ThemeData get lightTheme {
     return ThemeData(
@@ -16,14 +15,13 @@ class AppTheme {
         primary: _goldenApplePrimary,
         secondary: _goldenAppleSecondary,
         surface: _goldenAppleLight,
-        background: _goldenAppleLight,
         onPrimary: _goldenAppleDark,
         onSecondary: _goldenAppleDark,
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: _goldenApplePrimary,
         titleTextStyle: TextStyle(
-          color: _goldenAppleDark,
+          color: Color.fromARGB(255, 48, 230, 3),
           fontSize: 20,
           fontWeight: FontWeight.bold,
         ),

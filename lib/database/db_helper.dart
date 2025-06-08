@@ -5,7 +5,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class DatabaseHelper {
   static const String _databaseName = 'corporate_portal.db';
-  static const int _databaseVersion = 3;
+  static const int _databaseVersion = 6;
 
   // Таблицы и колонки
   static const String tableUsers = 'users';
@@ -28,7 +28,6 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    // Инициализация для десктопных платформ
     if (_isDesktopPlatform()) {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
@@ -46,6 +45,44 @@ class DatabaseHelper {
         await db.execute('PRAGMA foreign_keys = ON');
       },
     );
+  }
+
+  Future<List<Map<String, dynamic>>> getEventsWithOrganizer() async {
+    final db = await database;
+    return await db.query('events', orderBy: 'event_date ASC');
+  }
+
+  Future<int> createEvent({
+    required String? title,
+    required String? location,
+    required DateTime eventDate,
+    required String? organizerName,
+    String? description,
+  }) async {
+    final db = await database;
+    return await db.insert('events', {
+      'title': title,
+      'location': location,
+      'event_date': eventDate.toIso8601String(),
+      'organizer_name': organizerName,
+      'description': description,
+      'created_at': eventDate.toIso8601String(),
+    });
+  }
+
+  Future<int> updateEvent(Map<String, dynamic> event) async {
+    final db = await database;
+    return await db.update(
+      'events',
+      event,
+      where: 'id = ?',
+      whereArgs: [event['id']],
+    );
+  }
+
+  Future<int> deleteEvent(int id) async {
+    final db = await database;
+    return await db.delete('events', where: 'id = ?', whereArgs: [id]);
   }
 
   bool _isDesktopPlatform() {
@@ -69,7 +106,18 @@ class DatabaseHelper {
           last_login TEXT
         )
       ''');
-
+      await db.execute('''
+    CREATE TABLE events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      location TEXT NOT NULL,
+      event_date TEXT NOT NULL,
+      organizer_id INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      participants TEXT DEFAULT '[]'
+    )
+  ''');
       await txn.execute('''
        CREATE TABLE $tableNews (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -96,18 +144,40 @@ class DatabaseHelper {
         )
       ''');
 
-      await txn.execute('''
-        CREATE TABLE $tableEvents (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          title TEXT NOT NULL,
-          description TEXT,
-          start_time TEXT NOT NULL,
-          end_time TEXT NOT NULL,
-          location TEXT,
-          organizer_id INTEGER,
-          FOREIGN KEY (organizer_id) REFERENCES $tableUsers(id) ON DELETE SET NULL
-        )
-      ''');
+      await db.execute('''
+    CREATE TABLE IF NOT EXISTS events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      location TEXT NOT NULL,
+      event_date TEXT NOT NULL,
+      organizer_id INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (organizer_id) REFERENCES users(id)
+    )
+  ''');
+      await db.execute('''
+      CREATE TABLE communities (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT,
+        icon_url TEXT,
+        is_private BOOLEAN DEFAULT 0,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
+      await db.execute('''
+      CREATE TABLE user_communities (
+        user_id INTEGER NOT NULL,
+        community_id INTEGER NOT NULL,
+        is_admin BOOLEAN DEFAULT 0,
+        joined_at TEXT NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE,
+        PRIMARY KEY (user_id, community_id)
+      )
+    ''');
 
       // Добавляем тестового администратора
       await txn.insert(tableUsers, {
@@ -122,20 +192,31 @@ class DatabaseHelper {
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      await db.execute('ALTER TABLE $tableUsers ADD COLUMN department TEXT');
-    }
-    if (oldVersion < 3) {
       await db.execute('''
-        CREATE TABLE $tableNotifications (
+        CREATE TABLE communities (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id INTEGER NOT NULL,
-          title TEXT NOT NULL,
-          message TEXT NOT NULL,
-          is_read INTEGER DEFAULT 0,
-          created_at TEXT NOT NULL,
-          FOREIGN KEY (user_id) REFERENCES $tableUsers(id) ON DELETE CASCADE
+          name TEXT NOT NULL,
+          description TEXT,
+          icon_url TEXT,
+          is_private BOOLEAN DEFAULT 0,
+          created_at TEXT NOT NULL
         )
       ''');
+
+      await db.execute('''
+        CREATE TABLE user_communities (
+          user_id INTEGER NOT NULL,
+          community_id INTEGER NOT NULL,
+          is_admin BOOLEAN DEFAULT 0,
+          joined_at TEXT NOT NULL,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+          FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE,
+          PRIMARY KEY (user_id, community_id)
+        )
+      ''');
+
+      // Добавляем колонку community_id к существующей таблице news
+      await db.execute('ALTER TABLE news ADD COLUMN community_id INTEGER');
     }
   }
 
@@ -210,6 +291,15 @@ class DatabaseHelper {
     );
   }
 
+  Future<List<Map<String, dynamic>>> searchNews(String query) async {
+    final db = await database;
+    return await db.rawQuery('''
+      'news',
+      where: 'title LIKE ?',
+      whereArgs: ['%$query%'],
+    ''');
+  }
+
   Future<List<Map<String, dynamic>>> getUserNotifications(int userId) async {
     final db = await database;
     return await db.query(
@@ -220,15 +310,14 @@ class DatabaseHelper {
     );
   }
 
-  Future<List<Map<String, dynamic>>> getUpcomingEvents() async {
+  Future<Map<String, dynamic>> getUserById(int id) async {
     final db = await database;
-    return await db.rawQuery('''
-      SELECT e.*, u.name as organizer_name
-      FROM $tableEvents e
-      LEFT JOIN $tableUsers u ON e.organizer_id = u.id
-      WHERE e.start_time > datetime('now')
-      ORDER BY e.start_time ASC
-      LIMIT 10
-    ''');
+    final result = await db.query(
+      'users',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    return result.isNotEmpty ? result.first : {};
   }
 }
