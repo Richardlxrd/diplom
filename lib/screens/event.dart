@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../database/db_helper.dart'; // Импорт вашего DatabaseHelper
+import '../database/db_helper.dart';
 
 class EventsScreen extends StatefulWidget {
   final Map<String, dynamic> user;

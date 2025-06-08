@@ -30,7 +30,11 @@ class CorporatePortalApp extends StatelessWidget {
         appBarTheme: const AppBarTheme(
           elevation: 0,
           centerTitle: true,
-          titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          titleTextStyle: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Color.fromARGB(255, 70, 68, 68),
+          ),
         ),
       ),
       home: LoginScreen(),

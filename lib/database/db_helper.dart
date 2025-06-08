@@ -28,7 +28,6 @@ class DatabaseHelper {
   }
 
   Future<Database> _initDatabase() async {
-    // Инициализация для десктопных платформ
     if (_isDesktopPlatform()) {
       sqfliteFfiInit();
       databaseFactory = databaseFactoryFfi;
@@ -57,7 +56,7 @@ class DatabaseHelper {
     required String? title,
     required String? location,
     required DateTime eventDate,
-    required String? organizerName, // Только имя организатора
+    required String? organizerName,
     String? description,
   }) async {
     final db = await database;
@@ -65,7 +64,7 @@ class DatabaseHelper {
       'title': title,
       'location': location,
       'event_date': eventDate.toIso8601String(),
-      'organizer_name': organizerName, // Сохраняем только имя
+      'organizer_name': organizerName,
       'description': description,
       'created_at': eventDate.toIso8601String(),
     });

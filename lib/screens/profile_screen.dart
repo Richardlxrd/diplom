@@ -189,25 +189,6 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildActionButtons(BuildContext context) {
     return Column(
       children: [
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              backgroundColor: Colors.blue[700],
-            ),
-            onPressed: () {
-              // Редактирование профиля
-            },
-            child: const Text(
-              'Редактировать данные',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ),
         const SizedBox(height: 12),
         TextButton(
           onPressed: () {
